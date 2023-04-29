@@ -10,24 +10,25 @@
 #include <sys/ptrace.h>
 
 static const char* g_map_names[] = {
-    "testchmb_a_00",
-    "testchmb_a_01",
-    "testchmb_a_02",
-    "testchmb_a_03",
-    "testchmb_a_04",
-    "testchmb_a_05",
-    "testchmb_a_06",
-    "testchmb_a_07",
-    "testchmb_a_08",
-    "testchmb_a_09",
-    "testchmb_a_10",
-    "testchmb_a_11",
-    "testchmb_a_13",
-    "testchmb_a_14",
-    "testchmb_a_15",
-    "escape_00",
-    "escape_01",
-    "escape_02"
+    "testchmb_a_00.bsp",
+    "testchmb_a_01.bsp",
+    "testchmb_a_02.bsp",
+    "testchmb_a_03.bsp",
+    "testchmb_a_04.bsp",
+    "testchmb_a_05.bsp",
+    "testchmb_a_06.bsp",
+    "testchmb_a_07.bsp",
+    "testchmb_a_08.bsp",
+    "testchmb_a_09.bsp",
+    "testchmb_a_10.bsp",
+    "testchmb_a_11.bsp",
+    "testchmb_a_13.bsp",
+    "testchmb_a_14.bsp",
+    "testchmb_a_15.bsp",
+    "escape_00.bsp",
+    "escape_01.bsp",
+    "escape_02.bsp",
+    "advanced_chambers"
 };
 
 static const size_t g_map_names_len = sizeof(g_map_names) / sizeof(g_map_names[0]);
@@ -102,11 +103,7 @@ error:
 char* extract_map_name(const char* filename) {
     size_t len = strlen(filename);
 
-    if (len < 4) {
-        return NULL;
-    }
-
-    if (memcmp(filename + len - 4, ".bsp", 4) != 0) {
+    if (len == 0) {
         return NULL;
     }
 
@@ -116,7 +113,7 @@ char* extract_map_name(const char* filename) {
         start -= 1;
     }
 
-    size_t result_len = len - start - 4;
+    size_t result_len = len - start;
     char* result = calloc(result_len, sizeof(char));
 
     if (result == NULL) {
@@ -174,7 +171,6 @@ int main(int argc, char** argv) {
         }
 
         if (sendsig) {
-            printf("loading %s\n", current_map);
             kill(speedy_pid, SIGUSR1);
         }
 
