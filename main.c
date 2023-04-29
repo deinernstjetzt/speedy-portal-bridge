@@ -97,6 +97,7 @@ char* wait_for_openat(pid_t pid) {
     return result;
 
 error:
+    perror("Error waiting for openat");
     return NULL;
 }
 
