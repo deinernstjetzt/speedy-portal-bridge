@@ -152,9 +152,18 @@ int main(int argc, char** argv) {
     pid_t speedy_pid = strtol(argv[2], NULL, 10);
     pid_t portal_pid = strtol(argv[1], NULL, 10);
 
+    if (kill(speedy_pid, 0) < 0) {
+        printf("%s: process %d does not exist\n", invoc_name, speedy_pid);
+        return EXIT_FAILURE;
+    }
+
+    if (kill(portal_pid, 0) < 0) {
+        printf("%s: process %d does not exist\n", invoc_name, portal_pid);
+        return EXIT_FAILURE;
+    }
+
     char* res = NULL;
     const char* current_map = NULL;
-
 
     while ((res = wait_for_openat(portal_pid))) {
         char* name;
