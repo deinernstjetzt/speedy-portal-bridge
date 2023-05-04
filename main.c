@@ -9,6 +9,12 @@
 #include <sys/types.h>
 #include <sys/ptrace.h>
 
+#define LOG(msg) LOGF(msg, 0)
+
+#define LOGF(fmt, ...) do {                             \
+    printf("%s: " fmt "\n", g_invoc_name, __VA_ARGS__); \
+} while (0)
+
 static const char* g_map_names[] = {
     "testchmb_a_00.bsp",
     "testchmb_a_01.bsp",
@@ -32,6 +38,7 @@ static const char* g_map_names[] = {
 };
 
 static const size_t g_map_names_len = sizeof(g_map_names) / sizeof(g_map_names[0]);
+static const char* g_invoc_name = "speedy-portal-bridge";
 
 char* read_from_proccess(pid_t pid, void* addr) {
     size_t cap = 0;
@@ -136,32 +143,93 @@ bool is_valid_number(const char* s) {
     return true;
 }
 
+int pidof_wrapper(const char* name) {
+    char buf[128];
+
+    strcpy(buf, "pidof -s ");
+    strncpy(&buf[9], name, 128 - 9);
+
+    FILE* res = popen(buf, "r");
+
+    if (res == NULL) {
+        return -1;
+    }
+        
+    fgets(buf, 128, res);
+
+    char* next = NULL;
+    int pid = strtol(buf, &next, 10);
+
+    if (next == buf) {
+        return -1;
+    }
+
+    return pid;
+}
+
+int wait_for_process(const char* name) {
+    int res = 0;
+
+    while ((res = pidof_wrapper(name)) < 0) {
+        usleep(500000);
+    }
+
+    return res;
+}
+
 int main(int argc, char** argv) {
-    const char* invoc_name = argc ? argv[0] : "speedy-portal-bridge";
+    if (argc) {
+        g_invoc_name = argv[0];
+    }
 
-    if (argc < 3) {
-        printf("Usage: %s <portal pid> <speedy pid>\n", invoc_name);
+    pid_t speedy_pid; 
+    pid_t portal_pid;
+
+    if (argc == 1) {
+        LOG("attempting to find instance of portal");
+        portal_pid = wait_for_process("hl2_linux");
+        
+        if (portal_pid < 0) {
+            LOG("couldn't find an instance of portal");
+            return EXIT_FAILURE;
+        }
+
+        LOGF("found instance of portal with pid %d", portal_pid);
+        LOG("attempting to find instance of speedy");
+
+        speedy_pid = wait_for_process("speedy");
+
+        if (speedy_pid < 0) {
+            LOG("couldn't find an instance of speedy");
+            return EXIT_FAILURE;
+        }
+
+        LOGF("found instance of speedy with pid %d", speedy_pid);
+    } else if (argc == 3) {
+        if (!is_valid_number(argv[1]) || !is_valid_number(argv[2])) {
+            LOG("invalid process id");
+            return EXIT_FAILURE;
+        }
+
+        speedy_pid = strtol(argv[2], NULL, 10);
+        portal_pid = strtol(argv[1], NULL, 10);
+
+        if (kill(speedy_pid, 0) < 0) {
+            LOGF("process %d does not exist", speedy_pid);
+            return EXIT_FAILURE;
+        }
+
+        if (kill(portal_pid, 0) < 0) {
+            LOGF("process %d does not exist", portal_pid);
+            return EXIT_FAILURE;
+        }
+    } else {
+        printf("Usage: %s <portal pid> <speedy pid>\n", g_invoc_name);
         return EXIT_FAILURE;
     }
 
-    if (!is_valid_number(argv[1]) || !is_valid_number(argv[2])) {
-        printf("%s: invalid process id\n", invoc_name);
-        return EXIT_FAILURE;
-    }
-
-    pid_t speedy_pid = strtol(argv[2], NULL, 10);
-    pid_t portal_pid = strtol(argv[1], NULL, 10);
-
-    if (kill(speedy_pid, 0) < 0) {
-        printf("%s: process %d does not exist\n", invoc_name, speedy_pid);
-        return EXIT_FAILURE;
-    }
-
-    if (kill(portal_pid, 0) < 0) {
-        printf("%s: process %d does not exist\n", invoc_name, portal_pid);
-        return EXIT_FAILURE;
-    }
-
+    LOGF("starting bridge between portal (%d) and speedy (%d)", portal_pid, speedy_pid);
+    
     char* res = NULL;
     const char* current_map = NULL;
     int current_map_idx = -1;
@@ -179,7 +247,7 @@ int main(int argc, char** argv) {
                     current_map_idx = i;
                     sendsig = true;
 
-                    printf("%d\n", current_map_idx);
+                    LOGF("reached checkpoint %d", current_map_idx);
                 }
             }
         }
