@@ -164,6 +164,7 @@ int main(int argc, char** argv) {
 
     char* res = NULL;
     const char* current_map = NULL;
+    int current_map_idx = -1;
 
     while ((res = wait_for_openat(portal_pid))) {
         char* name;
@@ -173,9 +174,12 @@ int main(int argc, char** argv) {
 
         if ((name = extract_map_name(res))) {
             for (size_t i = 0; i < g_map_names_len; ++i) {
-                if (strcmp(name, g_map_names[i]) == 0 && current_map != g_map_names[i]) {
+                if (strcmp(name, g_map_names[i]) == 0 && current_map != g_map_names[i] && current_map_idx < (int) i) {
                     current_map = g_map_names[i];
+                    current_map_idx = i;
                     sendsig = true;
+
+                    printf("%d\n", current_map_idx);
                 }
             }
         }
