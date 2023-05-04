@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdint.h>
@@ -104,7 +105,7 @@ char* wait_for_openat(pid_t pid) {
     return result;
 
 error:
-    perror("Error waiting for openat");
+    LOGF("error waiting for openat: %s", strerror(errno));
     return NULL;
 }
 
@@ -253,12 +254,16 @@ int main(int argc, char** argv) {
         }
 
         if (sendsig) {
-            kill(speedy_pid, SIGUSR1);
+            if (kill(speedy_pid, SIGUSR1) < 0) {
+                LOG("shutting down after speedy instance died");
+                return EXIT_FAILURE;
+            }
         }
 
         free(name);
         free(res);
     }
 
+    LOG("shutting down after portal instance died");
     return EXIT_SUCCESS;
 }
