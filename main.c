@@ -106,6 +106,9 @@ char* wait_for_openat(pid_t pid) {
 
 error:
     LOGF("error waiting for openat: %s", strerror(errno));
+
+    /* detach to prevent portal from staying in a weird state */
+    ptrace(PTRACE_DETACH, pid, NULL, NULL);
     return NULL;
 }
 
