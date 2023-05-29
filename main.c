@@ -1,3 +1,4 @@
+#include <time.h>
 #include <stdio.h>
 #include <errno.h>
 #include <stdlib.h>
@@ -237,6 +238,7 @@ int main(int argc, char** argv) {
     char* res = NULL;
     const char* current_map = NULL;
     int current_map_idx = -1;
+    time_t last_wellness_check = time(NULL);
 
     while ((res = wait_for_openat(portal_pid))) {
         char* name;
@@ -258,6 +260,15 @@ int main(int argc, char** argv) {
 
         if (sendsig) {
             if (kill(speedy_pid, SIGUSR1) < 0) {
+                LOG("shutting down after speedy instance died");
+                return EXIT_FAILURE;
+            }
+        }
+
+        if (last_wellness_check < time(NULL)) {
+            last_wellness_check = time(NULL);
+
+            if (kill(speedy_pid, 0) < 0) {
                 LOG("shutting down after speedy instance died");
                 return EXIT_FAILURE;
             }
